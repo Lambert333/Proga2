@@ -1,12 +1,15 @@
 package com.example.proga;
 
+import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
 import android.media.AudioFormat;
@@ -21,10 +24,12 @@ import android.os.Looper;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import java.util.List;
 
 import android.Manifest;
+import android.app.ActivityManager;
 
 public class MicrophoneMonitorService extends Service {
     private static final String TAG = "MicrophoneMonitorService";
@@ -55,11 +60,20 @@ public class MicrophoneMonitorService extends Service {
                     
                     if (isMicrophoneInUse != lastMicrophoneState) {
                         lastMicrophoneState = isMicrophoneInUse;
-                        String message = isMicrophoneInUse ? 
-                            "Микрофон используется" : 
-                            "Мониторинг микрофона активен";
+                        String message;
+                        if (isMicrophoneInUse) {
+                            // Получаем имя приложения
+                            String appName = getAppName(configs);
+                            message = "Микрофон используется: " + appName;
+                        } else {
+                            message = "Мониторинг микрофона активен";
+                        }
                         Log.d(TAG, "Microphone state changed: " + message);
-                        updateNotification(message);
+                        if (isMicrophoneInUse) {
+                            showHighPriorityNotification(message);
+                        } else {
+                            updateNotification(message);
+                        }
                     }
                 }
             };
@@ -82,30 +96,142 @@ public class MicrophoneMonitorService extends Service {
         }
     }
 
-    private void createNotificationChannel() {
+    private String getAppName(List<AudioRecordingConfiguration> configs) {
+        if (configs.isEmpty()) {
+            return "Неизвестное приложение";
+        }
+
+        AudioRecordingConfiguration config = configs.get(0);
+        String ownPackageName = getPackageName();
+        
         try {
+            // Получаем список активных приложений
+            ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+            
+            // Проверяем приложение на переднем плане
+            List<ActivityManager.RunningTaskInfo> taskInfo = am.getRunningTasks(1);
+            if (taskInfo != null && !taskInfo.isEmpty()) {
+                String foregroundPackageName = taskInfo.get(0).topActivity.getPackageName();
+                if (!foregroundPackageName.equals(ownPackageName) && 
+                    hasRecordAudioPermission(foregroundPackageName)) {
+                    try {
+                        PackageManager pm = getPackageManager();
+                        ApplicationInfo appInfo = pm.getApplicationInfo(foregroundPackageName, 0);
+                        String appName = pm.getApplicationLabel(appInfo).toString();
+                        Log.d(TAG, "Foreground app with RECORD_AUDIO permission: " + appName);
+                        return appName;
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error getting foreground app name", e);
+                    }
+                }
+            }
+            
+            // Если приложение на переднем плане не использует микрофон,
+            // проверяем все запущенные процессы
+            List<ActivityManager.RunningAppProcessInfo> processes = am.getRunningAppProcesses();
+            if (processes != null) {
+                for (ActivityManager.RunningAppProcessInfo process : processes) {
+                    if (!process.processName.equals(ownPackageName) && 
+                        process.importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_SERVICE &&
+                        hasRecordAudioPermission(process.processName)) {
+                        try {
+                            PackageManager pm = getPackageManager();
+                            ApplicationInfo appInfo = pm.getApplicationInfo(process.processName, 0);
+                            String appName = pm.getApplicationLabel(appInfo).toString();
+                            Log.d(TAG, "Found app with RECORD_AUDIO permission: " + appName);
+                            return appName;
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error getting app name", e);
+                        }
+                    }
+                }
+            }
+            
+            // Если не удалось определить приложение, используем информацию об аудио источнике
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                int audioSource = config.getAudioSource();
+                Log.d(TAG, "Audio source: " + audioSource);
+                
+                switch (audioSource) {
+                    case MediaRecorder.AudioSource.MIC:
+                        return "Приложение записи звука";
+                    case MediaRecorder.AudioSource.VOICE_RECOGNITION:
+                        return "Голосовой помощник";
+                    case MediaRecorder.AudioSource.VOICE_COMMUNICATION:
+                        return "Приложение для звонков";
+                    case MediaRecorder.AudioSource.CAMCORDER:
+                        return "Камера";
+                    case MediaRecorder.AudioSource.VOICE_CALL:
+                        return "Телефон";
+                    default:
+                        return "Аудио приложение";
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting app info", e);
+        }
+
+        return "Неизвестное приложение";
+    }
+
+    // Проверяет, есть ли у приложения разрешение на запись аудио
+    private boolean hasRecordAudioPermission(String packageName) {
+        try {
+            PackageManager pm = getPackageManager();
+            PackageInfo packageInfo = pm.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS);
+            
+            if (packageInfo.requestedPermissions != null) {
+                for (String permission : packageInfo.requestedPermissions) {
+                    if (Manifest.permission.RECORD_AUDIO.equals(permission)) {
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error checking permissions for " + packageName, e);
+        }
+        return false;
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
                     "Мониторинг микрофона",
-                    NotificationManager.IMPORTANCE_DEFAULT
+                    NotificationManager.IMPORTANCE_HIGH
             );
-            channel.setSound(null, null);
+            channel.setDescription("Уведомления об использовании микрофона");
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             if (notificationManager != null) {
                 notificationManager.createNotificationChannel(channel);
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Error creating notification channel", e);
         }
     }
 
     private Notification createNotification(String text) {
+        Intent intent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
+
         return new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Мониторинг микрофона")
                 .setContentText(text)
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setOnlyAlertOnce(true)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
                 .build();
+    }
+
+    private void showHighPriorityNotification(String text) {
+        Notification notification = createNotification(text);
+
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+            notificationManager.notify(NOTIFICATION_ID, notification);
+        } else {
+            Log.e(TAG, "Missing POST_NOTIFICATIONS permission");
+        }
     }
 
     private void updateNotification(String text) {
