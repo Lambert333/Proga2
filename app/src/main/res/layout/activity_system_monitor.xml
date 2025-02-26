@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:elevation="4dp"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <Button
+                android:id="@+id/startButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Запустить мониторинг"
+                android:layout_marginBottom="8dp"/>
+
+            <Button
+                android:id="@+id/stopButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Остановить мониторинг"
+                android:layout_marginBottom="16dp"/>
+
+            <TextView
+                android:id="@+id/statusText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Статус: Не активен"
+                android:textSize="16sp"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- CPU Section -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Процессор"
+                android:textStyle="bold"
+                android:textSize="16sp"/>
+
+            <com.github.mikephil.charting.charts.LineChart
+                android:id="@+id/cpuChart"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/cpuText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="14sp"
+                android:layout_marginBottom="24dp"/>
+
+            <!-- RAM Section -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Оперативная память"
+                android:textStyle="bold"
+                android:textSize="16sp"/>
+
+            <com.github.mikephil.charting.charts.LineChart
+                android:id="@+id/ramChart"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/ramText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="14sp"
+                android:layout_marginBottom="24dp"/>
+
+            <!-- Battery Section -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Батарея"
+                android:textStyle="bold"
+                android:textSize="16sp"/>
+
+            <com.github.mikephil.charting.charts.LineChart
+                android:id="@+id/batteryChart"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/batteryText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="14sp"
+                android:layout_marginBottom="24dp"/>
+
+            <!-- Storage Section -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Хранилище"
+                android:textStyle="bold"
+                android:textSize="16sp"/>
+
+            <com.github.mikephil.charting.charts.LineChart
+                android:id="@+id/storageChart"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/storageText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="14sp"/>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout> 

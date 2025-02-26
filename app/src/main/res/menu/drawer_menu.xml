@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/ic_home"
+        android:title="Домой" />
+    
+    <item
+        android:id="@+id/nav_microphone"
+        android:icon="@drawable/ic_mic"
+        android:title="Мониторинг Микрофона" />
+
+    <item
+        android:id="@+id/nav_location"
+        android:icon="@drawable/ic_location"
+        android:title="Мониторинг Геолокации" />
+
+    <item
+        android:id="@+id/nav_system"
+        android:icon="@drawable/ic_system"
+        android:title="Системный Мониторинг" />
+</menu> 
